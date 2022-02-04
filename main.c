@@ -7,13 +7,20 @@
 #include "stm32l1xx_ll_pwr.h"
 #include "stm32l1xx_ll_utils.h"
 #include "stm32l1xx_ll_adc.h"
+#include "stm32l1xx_ll_usart.h"
 
 #include "stm32l1xx_ll_lcd.h"
 #include "stm32l152_glass_lcd.h"
+#include "stm32l1xx_ll_tim.h"
 #include "stdio.h"
 
 #define released 0
 #define pressed 1
+#define E_06 (uint16_t)1318
+#define MUTE (uint16_t)1
+
+#define TIMx_PSC  3
+#define ARR_CALCULATE(N) (SystemCoreClock) / ((TIMx_PSC) * (N))
 
 unsigned int sw,state;
 char disp_str[] = "1811340015";
@@ -21,6 +28,12 @@ void SystemClock_Config(void);
 uint16_t adc_data = 0;
 uint8_t prog_state = 0;
 uint8_t sw_cnt = 0;
+
+void TIM_BASE_Config(uint16_t);
+void TIM_OC_Config(uint16_t);
+void TIM_OC_GPIO_Config(void);
+void TIM_BASE_DurationConfig(void);
+
 
 
 int main()
@@ -61,8 +74,8 @@ int main()
 	DAC ->CR |=(1<<0);
 	
 	//Note_cpe-312
-	TIM_OC_Config(ARR_CALCULATE(E_O6));
-	TIM_BASE_DurationConfig();
+	TIM_OC_Config(ARR_CALCULATE(E_06));
+	//TIM_BASE_DurationConfig();
 	while(1)
 	{	
 		ADC1->CR2 |= (1<<30);//start regular conversion
@@ -170,21 +183,6 @@ int main()
 	
 }
 //begin
-void TIM_BASE_Config(uint16_t ARR)
-{
-	LL_TIM_InitTypeDef timbase_initstructure;
-	
-	LL_APB1_GRP1_EnableClock(LL_APB1_GRP1_PERIPH_TIM4);
-	//Time-base configure
-	timbase_initstructure.ClockDivision = LL_TIM_CLOCKDIVISION_DIV1;
-	timbase_initstructure.CounterMode = LL_TIM_COUNTERMODE_UP;
-	timbase_initstructure.Autoreload = ARR - 1;
-	timbase_initstructure.Prescaler =  TIMx_PSC- 1;
-	LL_TIM_Init(TIM4, &timbase_initstructure);
-	
-	LL_TIM_EnableCounter(TIM4); 
-}
-
 void TIM_BASE_Config(uint16_t ARR)
 {
 	LL_TIM_InitTypeDef timbase_initstructure;
